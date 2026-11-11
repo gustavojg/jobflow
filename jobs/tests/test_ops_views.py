@@ -61,3 +61,10 @@ async def test_stats_aggregates_from_redis(aclient, make_job):
     assert body["avg_duration_seconds"] is not None
 
     job.status = JobStatus.SUCCEEDED
+
+
+async def test_home_serves_the_ui(aclient):
+    res = await aclient.get("/")
+    assert res.status_code == 200
+    assert b"<title>jobflow</title>" in res.content
+    assert b"/ws/jobs/" in res.content

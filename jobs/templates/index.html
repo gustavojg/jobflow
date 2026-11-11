@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>jobflow</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f0f1f4; --border: #e2e4e9;
+    --text: #15181e; --muted: #6b7280; --accent: #2f5bea; --accent-ink: #ffffff;
+    --ok: #15803d; --ok-bg: #dcfce7; --bad: #b91c1c; --bad-bg: #fee2e2;
+    --run: #1d4ed8; --run-bg: #dbeafe; --wait: #92400e; --wait-bg: #fef3c7;
+    --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+    --radius: 12px; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --surface: #171a21; --surface-2: #1e222b; --border: #2a2f3a;
+      --text: #e7e9ee; --muted: #8b93a3; --accent: #5b82ff; --accent-ink: #0b1020;
+      --ok: #4ade80; --ok-bg: #122a1c; --bad: #f87171; --bad-bg: #2d1515;
+      --run: #7ea2ff; --run-bg: #16213d; --wait: #fbbf24; --wait-bg: #2d2410;
+      --shadow: 0 1px 2px rgba(0,0,0,.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  a { color: var(--accent); text-decoration: none; }
+  button, input, select { font: inherit; color: inherit; }
+
+  header { display: flex; align-items: center; gap: 16px; padding: 16px 24px;
+    border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 2; }
+  .brand { font-weight: 700; letter-spacing: -.01em; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+  .brand .logo { width: 26px; height: 26px; border-radius: 8px; background: var(--accent); display: grid; place-items: center; }
+  .brand .logo::after { content: ""; width: 10px; height: 10px; border: 2.5px solid var(--accent-ink); border-radius: 50%; border-right-color: transparent; }
+  .brand small { color: var(--muted); font-weight: 500; font-size: 13px; }
+  .spacer { flex: 1; }
+  .conn { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted);
+    padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); }
+  .conn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .conn.live .dot { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent); }
+  .conn.down .dot { background: var(--bad); }
+  header nav a { font-size: 13px; color: var(--muted); margin-left: 14px; }
+  header nav a:hover { color: var(--text); }
+
+  main { max-width: 1180px; margin: 0 auto; padding: 24px; display: grid; gap: 20px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
+  .stat .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .stat .value { font-size: 26px; font-weight: 650; letter-spacing: -.02em; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .stat .value small { font-size: 13px; color: var(--muted); font-weight: 500; margin-left: 3px; }
+
+  .layout { display: grid; grid-template-columns: 360px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+  .card h2 { font-size: 15px; margin: 0; padding: 16px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .card h2 .hint { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: auto; }
+  .card .body { padding: 18px; }
+
+  .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 4px; background: var(--surface-2); border-radius: 10px; }
+  .seg button { border: 0; background: transparent; padding: 8px 6px; border-radius: 8px; cursor: pointer; color: var(--muted); font-weight: 500; }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+  .desc { color: var(--muted); font-size: 13px; margin: 12px 0 16px; min-height: 40px; }
+  .field { display: grid; gap: 6px; margin-bottom: 14px; }
+  .field label { font-size: 13px; font-weight: 500; }
+  .field label span { color: var(--muted); font-weight: 400; margin-left: 6px; }
+  .field input { padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); width: 100%; }
+  .field input:focus { outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); border-color: var(--accent); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .presets button { border: 1px solid var(--border); background: var(--surface); padding: 5px 10px; border-radius: 999px; font-size: 13px; cursor: pointer; color: var(--muted); }
+  .presets button:hover { color: var(--text); border-color: var(--muted); }
+  .submit { width: 100%; padding: 11px; border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-ink);
+    font-weight: 600; cursor: pointer; display: flex; justify-content: center; gap: 10px; align-items: center; }
+  .submit:disabled { opacity: .6; cursor: progress; }
+  .submit .n { background: color-mix(in srgb, var(--accent-ink) 20%, transparent); padding: 0 8px; border-radius: 999px; font-size: 13px; }
+  .burst { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 13px; color: var(--muted); }
+  .burst input[type=range] { flex: 1; accent-color: var(--accent); }
+  .err { color: var(--bad); font-size: 13px; margin-top: 10px; min-height: 1.2em; }
+
+  .jobs { list-style: none; margin: 0; padding: 0; }
+  .job { display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; padding: 14px 18px; border-top: 1px solid var(--border); animation: in .25s ease-out; }
+  .job:first-child { border-top: 0; }
+  @keyframes in { from { transform: translateY(-4px); } }
+  .job .top { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .kind { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--border); }
+  .id { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .status { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .status.queued { color: var(--wait); background: var(--wait-bg); }
+  .status.running { color: var(--run); background: var(--run-bg); }
+  .status.succeeded { color: var(--ok); background: var(--ok-bg); }
+  .status.failed { color: var(--bad); background: var(--bad-bg); }
+  .meta { font-size: 13px; color: var(--muted); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .bar { grid-column: 1 / -1; height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 999px; transition: width .15s linear; }
+  .job.succeeded .bar i { background: var(--ok); } .job.failed .bar i { background: var(--bad); }
+  .job.running .bar i { background-image: linear-gradient(90deg, transparent 0, rgba(255,255,255,.25) 50%, transparent 100%); background-size: 200% 100%; animation: shine 1.2s linear infinite; }
+  @keyframes shine { to { background-position: -200% 0; } }
+  .result { grid-column: 1 / -1; font-family: var(--mono); font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+  .result.bad { color: var(--bad); }
+  .empty { padding: 48px 18px; text-align: center; color: var(--muted); }
+  .empty b { display: block; color: var(--text); margin-bottom: 4px; font-weight: 600; }
+  footer { text-align: center; color: var(--muted); font-size: 13px; padding: 8px 0 24px; }
+  footer code { font-family: var(--mono); }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo"></span>jobflow <small>real-time job pipeline</small></div>
+  <div class="spacer"></div>
+  <span class="conn" id="conn"><span class="dot"></span><span id="connText">connecting…</span></span>
+  <nav><a href="/api/jobs/" target="_blank">API</a><a href="/metrics" target="_blank">Metrics</a><a href="https://github.com/gustavojg/jobflow" target="_blank" rel="noopener">GitHub</a></nav>
+</header>
+
+<main>
+  <section class="stats" id="stats">
+    <div class="stat"><div class="label">Submitted</div><div class="value" data-k="created">–</div></div>
+    <div class="stat"><div class="label">In flight</div><div class="value" data-k="in_flight">–</div></div>
+    <div class="stat"><div class="label">Succeeded</div><div class="value" data-k="succeeded">–</div></div>
+    <div class="stat"><div class="label">Failed</div><div class="value" data-k="failed">–</div></div>
+    <div class="stat"><div class="label">Throughput</div><div class="value"><span data-k="throughput_per_minute">–</span><small>/min</small></div></div>
+    <div class="stat"><div class="label">Avg duration</div><div class="value"><span data-k="avg_duration_seconds">–</span><small>s</small></div></div>
+  </section>
+
+  <div class="layout">
+    <section class="card">
+      <h2>New job</h2>
+      <div class="body">
+        <div class="seg" id="kinds" role="tablist"></div>
+        <p class="desc" id="desc"></p>
+        <div id="fields"></div>
+        <div class="presets" id="presets"></div>
+        <button class="submit" id="submit">Run <span class="n" id="count">1</span></button>
+        <div class="burst"><span>Burst</span><input type="range" id="burst" min="1" max="50" value="1"><span id="burstVal">1 job</span></div>
+        <div class="err" id="err"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Live jobs <span class="hint" id="hint">streaming over WebSocket</span></h2>
+      <ul class="jobs" id="jobs"></ul>
+      <div class="empty" id="empty"><b>Nothing yet</b>Submit a job and watch it move from queued to done, live.</div>
+    </section>
+  </div>
+</main>
+<footer>Django · Channels · Celery · Redis · PostgreSQL — try <code>Burst 50</code> and watch the workers drain the queue.</footer>
+
+<script>
+(() => {
+  const KINDS = {
+    primes: {
+      title: "primes", desc: "CPU-bound: counts primes below a limit with a segmented sieve. Progress is reported per segment.",
+      fields: [{ k: "limit", label: "Limit", hint: "upper bound", def: 5000000, min: 2, step: 1 }],
+      presets: [["Quick", { limit: 1000000 }], ["Medium", { limit: 10000000 }], ["Heavy", { limit: 50000000 }]],
+    },
+    sleep: {
+      title: "sleep", desc: "IO-bound stand-in: waits for a while in steps, like polling a slow upstream service.",
+      fields: [{ k: "seconds", label: "Seconds", def: 3, min: 0, step: 0.5 }, { k: "steps", label: "Steps", hint: "progress updates", def: 10, min: 1, step: 1 }],
+      presets: [["3 s", { seconds: 3, steps: 10 }], ["10 s", { seconds: 10, steps: 20 }], ["Fail (bad input)", { seconds: "oops", steps: 5 }]],
+    },
+    checksum: {
+      title: "checksum", desc: "Hashes a text repeatedly with SHA-256, a stand-in for processing an uploaded file.",
+      fields: [{ k: "text", label: "Text", def: "jobflow", type: "text" }, { k: "rounds", label: "Rounds", def: 500000, min: 1, step: 1 }],
+      presets: [["Quick", { text: "jobflow", rounds: 100000 }], ["Heavy", { text: "jobflow", rounds: 3000000 }]],
+    },
+  };
+  const $ = (id) => document.getElementById(id);
+  const jobs = new Map();           // id -> job
+  const order = [];                 // newest first
+  const MAX_ROWS = 60;
+  let kind = "primes";
+
+  // ----- form -----------------------------------------------------------------
+  function renderKinds() {
+    $("kinds").innerHTML = Object.keys(KINDS).map(k =>
+      `<button role="tab" data-k="${k}" aria-pressed="${k === kind}">${KINDS[k].title}</button>`).join("");
+    $("desc").textContent = KINDS[kind].desc;
+    $("fields").innerHTML = `<div class="${KINDS[kind].fields.length > 1 ? "row" : ""}">` + KINDS[kind].fields.map(f =>
+      `<div class="field"><label for="f-${f.k}">${f.label}${f.hint ? `<span>${f.hint}</span>` : ""}</label>
+       <input id="f-${f.k}" data-k="${f.k}" type="${f.type || "number"}" value="${f.def}" ${f.min != null ? `min="${f.min}"` : ""} ${f.step ? `step="${f.step}"` : ""}></div>`).join("") + "</div>";
+    $("presets").innerHTML = KINDS[kind].presets.map(([n, p], i) => `<button data-i="${i}">${n}</button>`).join("");
+  }
+  $("kinds").addEventListener("click", e => { const b = e.target.closest("button"); if (b) { kind = b.dataset.k; renderKinds(); } });
+  $("presets").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    const p = KINDS[kind].presets[b.dataset.i][1];
+    for (const [k, v] of Object.entries(p)) { const el = document.querySelector(`#fields [data-k="${k}"]`); if (el) el.value = v; }
+  });
+  $("burst").addEventListener("input", e => { $("count").textContent = e.target.value; $("burstVal").textContent = `${e.target.value} job${e.target.value > 1 ? "s" : ""}`; });
+
+  function payload() {
+    const out = {};
+    for (const el of document.querySelectorAll("#fields input")) {
+      const v = el.value.trim();
+      out[el.dataset.k] = el.type === "number" && v !== "" && !isNaN(v) ? Number(v) : v;
+    }
+    return out;
+  }
+
+  $("submit").addEventListener("click", async () => {
+    const n = Number($("burst").value), body = JSON.stringify({ kind, payload: payload() });
+    $("submit").disabled = true; $("err").textContent = "";
+    const t0 = performance.now();
+    const results = await Promise.allSettled(Array.from({ length: n }, () =>
+      fetch("/api/jobs/", { method: "POST", headers: { "Content-Type": "application/json" }, body }).then(async r => {
+        if (!r.ok) throw new Error(Object.entries(await r.json()).map(([k, v]) => `${k}: ${[].concat(v).join(" ")}`).join("; "));
+        return r.json();
+      })));
+    const ok = results.filter(r => r.status === "fulfilled");
+    ok.forEach(r => upsert(r.value));
+    const bad = results.find(r => r.status === "rejected");
+    if (bad) $("err").textContent = bad.reason.message || "Request failed";
+    else $("hint").textContent = `${n} job${n > 1 ? "s" : ""} submitted in ${Math.round(performance.now() - t0)} ms`;
+    $("submit").disabled = false;
+  });
+
+  // ----- jobs list ------------------------------------------------------------
+  function fmtResult(j) {
+    if (j.status === "failed") return j.error || "failed";
+    if (j.status !== "succeeded" || !j.result) return "";
+    return Object.entries(j.result).map(([k, v]) => `${k}: ${typeof v === "string" && v.length > 24 ? v.slice(0, 24) + "…" : v}`).join("   ");
+  }
+  function duration(j) {
+    if (j.duration_seconds != null) return `${(j.duration_seconds * 1000).toFixed(0)} ms`;
+    if (j.started_at && j.finished_at) return `${(new Date(j.finished_at) - new Date(j.started_at))} ms`;
+    if (j.status === "running" && j._started) return `${(performance.now() - j._started) / 1000 | 0} s`;
+    return j.status === "queued" ? "waiting" : "";
+  }
+  function row(j) {
+    return `<div class="top"><span class="kind">${j.kind}</span><span class="status ${j.status}">${j.status}</span><span class="id">${j.id.slice(0, 8)}</span></div>
+      <div class="meta">${j.progress}% · ${duration(j)}</div>
+      <div class="bar"><i style="width:${j.progress}%"></i></div>
+      ${fmtResult(j) ? `<div class="result ${j.status === "failed" ? "bad" : ""}">${fmtResult(j)}</div>` : ""}`;
+  }
+  function upsert(j) {
+    const prev = jobs.get(j.id);
+    const merged = { ...(prev || {}), ...j };
+    if (merged.status === "running" && !merged._started) merged._started = performance.now();
+    jobs.set(j.id, merged);
+    let li = document.querySelector(`li[data-id="${j.id}"]`);
+    if (!li) {
+      li = document.createElement("li"); li.dataset.id = j.id; li.className = "job";
+      $("jobs").prepend(li); order.unshift(j.id);
+      while (order.length > MAX_ROWS) { const old = order.pop(); jobs.delete(old); document.querySelector(`li[data-id="${old}"]`)?.remove(); }
+    }
+    li.className = `job ${merged.status}`;
+    li.innerHTML = row(merged);
+    $("empty").style.display = jobs.size ? "none" : "";
+  }
+
+  // ----- websocket feed with reconnect ------------------------------------------
+  let backoff = 500;
+  function connect() {
+    const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/jobs/`);
+    ws.onopen = () => { backoff = 500; $("conn").className = "conn live"; $("connText").textContent = "live"; };
+    ws.onmessage = e => { const m = JSON.parse(e.data); if (m.type === "job") upsert(m.job); };
+    ws.onclose = () => {
+      $("conn").className = "conn down"; $("connText").textContent = "reconnecting…";
+      setTimeout(connect, backoff); backoff = Math.min(backoff * 2, 8000);
+    };
+  }
+
+  // ----- stats --------------------------------------------------------------------
+  async function stats() {
+    try {
+      const s = await (await fetch("/api/stats")).json();
+      for (const el of document.querySelectorAll("#stats [data-k]")) {
+        const v = s[el.dataset.k]; el.textContent = v == null ? "–" : v;
+      }
+    } catch {}
+  }
+
+  // ----- boot ----------------------------------------------------------------------
+  renderKinds();
+  fetch("/api/jobs/?page_size=30").then(r => r.json()).then(d => d.results.slice().reverse().forEach(upsert)).catch(() => {});
+  connect(); stats(); setInterval(stats, 2000);
+  setInterval(() => { for (const j of jobs.values()) if (j.status === "running") { const li = document.querySelector(`li[data-id="${j.id}"] .meta`); if (li) li.textContent = `${j.progress}% · ${duration(j)}`; } }, 1000);
+})();
+</script>
+</body>
+</html>

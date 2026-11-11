@@ -11,6 +11,8 @@ A small but production-shaped **real-time job pipeline** in Python. Clients subm
                                               Redis (live stats) ◀──────┘
 ```
 
+![jobflow UI: submit jobs, watch them run live](docs/screenshot.jpg)
+
 It exists to demonstrate, end to end and with tests, this stack:
 
 | Area | What's here |
@@ -34,13 +36,15 @@ docker compose up --build
 
 Port 8000 taken? `WEB_PORT=8080 docker compose up --build` and pass `--base http://localhost:8080` to the demo.
 
-Then, in another terminal:
+Open **http://localhost:8000** and submit a job. Try a burst of 50 `primes` jobs and watch the four workers drain the queue; the "Fail (bad input)" preset shows the failure path. The page is a single dependency-free HTML file served by Django, with WebSocket reconnect and backoff.
+
+There is also a terminal client:
 
 ```bash
 uv run python scripts/demo.py --count 20 --kind primes
 ```
 
-The demo submits 20 jobs concurrently, reports submit latency, and prints each job's progress as it streams in over the WebSocket feed.
+It submits 20 jobs concurrently, reports submit latency, and prints each job's progress as it streams in over the WebSocket feed.
 
 Manual poking:
 
@@ -108,6 +112,7 @@ jobs/
   services.py    Redis stats + channel-layer fan-out (the only side-effect boundary)
   consumers.py   WebSocket consumers
   views.py       DRF viewset + async ops endpoints
+  templates/     the single-page UI served at /
   tests/         pytest suite (no external services needed)
 scripts/demo.py  concurrent submit + live progress client
 ```
